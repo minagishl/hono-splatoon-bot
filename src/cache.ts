@@ -1,4 +1,4 @@
-import { Schedules } from 'splatnet3-types/splatoon3ink';
+import { Coop, Schedules } from 'splatnet3-types/splatoon3ink';
 import { Locale } from './types/locale.ts';
 
 export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Promise<T> {
@@ -34,6 +34,12 @@ export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Prom
 	await kv.set(['cache', cacheKey], { data, timestamp: now.getTime() });
 	console.log(`Cache updated for ${cacheKey}`);
 	return data;
+}
+
+// Get co-op information (with cache applied)
+export async function getCoop() {
+	const url = 'https://splatoon3.ink/data/coop.json';
+	return await getCachedData<Coop>('coop', url);
 }
 
 // Get schedule information (with cache applied)
