@@ -3,7 +3,7 @@ import type { Schedules } from 'splatnet3-types/splatoon3ink';
 import { getSchedules, getLocale } from '../cache.ts';
 import { countNext } from './index.ts';
 
-export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]> {
+export async function createMessage(event: WebhookEvent): Promise<TextMessage[] | FlexMessage[]> {
 	if (event.type !== 'message' || event.message.type !== 'text') {
 		throw new Error('Not a text message');
 	}
@@ -77,7 +77,13 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 	}
 
 	if (!scheduleData) {
-		throw new Error('No schedule data available');
+		const message: TextMessage[] = [
+			{
+				type: 'text' as const,
+				text: '指定されたスケジュールが見つかりませんでした',
+			},
+		];
+		return message;
 	}
 
 	const message: FlexMessage[] = [
