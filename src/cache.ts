@@ -1,4 +1,5 @@
 import { Schedules } from 'splatnet3-types/splatoon3ink';
+import { Locale } from './types/locale.ts';
 
 export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Promise<T> {
 	const kv = await Deno.openKv();
@@ -44,5 +45,5 @@ export async function getSchedules() {
 // Get locale (ja-JP) information (with cache applied)
 export async function getLocale() {
 	const url = 'https://splatoon3.ink/data/locale/ja-JP.json';
-	return await getCachedData<any>('locale_ja_JP', url);
+	return await getCachedData<Locale>('locale_ja_JP', url);
 }
