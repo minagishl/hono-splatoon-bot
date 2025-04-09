@@ -119,6 +119,10 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 										const setting =
 											matchType === 'event' && 'leagueMatchSetting' in scheduleData
 												? scheduleData.leagueMatchSetting
+												: matchType === 'bankara'
+												? scheduleData[matchSettingKey as keyof typeof scheduleData][
+														title.includes('チャレンジ') ? 0 : 1
+												  ]
 												: scheduleData[matchSettingKey as keyof typeof scheduleData];
 										if (!setting?.vsRule?.id || !locale.rules[setting.vsRule.id]) return 'N/A';
 										return locale.rules[setting.vsRule.id].name;
@@ -146,6 +150,14 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 								...((matchType === 'event' && 'leagueMatchSetting' in scheduleData
 									? (scheduleData.leagueMatchSetting as { vsStages: Array<{ id: string }> })
 											?.vsStages
+									: matchType === 'bankara'
+									? (
+											scheduleData[matchSettingKey as keyof typeof scheduleData][
+												title.includes('チャレンジ') ? 0 : 1
+											] as {
+												vsStages: Array<{ id: string }>;
+											}
+									  )?.vsStages
 									: (
 											scheduleData[matchSettingKey as keyof typeof scheduleData] as {
 												vsStages: Array<{ id: string }>;
