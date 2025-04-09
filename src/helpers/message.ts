@@ -2,19 +2,24 @@ import type { TextMessage, FlexMessage, WebhookEvent } from '@line/bot-sdk';
 import type { Schedules } from 'splatnet3-types/splatoon3ink';
 import { getSchedules, getLocale } from '../cache.ts';
 import { countNext } from './index.ts';
+import { findMatchType, type MatchType } from '../constants/keywords.ts';
 
 export async function createMessage(event: WebhookEvent): Promise<TextMessage[] | FlexMessage[]> {
 	if (event.type !== 'message' || event.message.type !== 'text') {
 		throw new Error('Not a text message');
 	}
 
-	const text = event.message.text.toLowerCase();
+	const text = event.message.text;
 	const count = countNext(text, 3);
 
 	const schedules = await getSchedules();
 	const locale = await getLocale();
 
-	let matchType: string;
+	const matchTypeResult = findMatchType(text);
+	if (!matchTypeResult) {
+		throw new Error('Invalid match type');
+	}
+
 	interface VsRule {
 		vsRule: { id: string };
 	}
@@ -38,43 +43,89 @@ export async function createMessage(event: WebhookEvent): Promise<TextMessage[] 
 		| Schedules['data']['eventSchedules']['nodes'][number]
 		| (Schedules['data']['coopGroupingSchedule']['regularSchedules']['nodes'][number] &
 				ScheduleData);
-	let matchSettingKey: string;
-	let title: string;
 
-	// Determine the match type based on the text
-	if (text.includes('レギュラー') || text.includes('ナワバリ')) {
-		matchType = 'regular';
-		scheduleData = schedules.data.regularSchedules.nodes[count];
-		matchSettingKey = 'regularMatchSetting';
-		title = 'ナワバリマッチ';
-	} else if (text.includes('バンカラ') && !text.includes('オープン')) {
-		matchType = 'bankara';
-		scheduleData = schedules.data.bankaraSchedules.nodes[count];
-		matchSettingKey = 'bankaraMatchSettings';
-		title = 'バンカラマッチ（チャレンジ）';
-	} else if (text.includes('バンカラ') && text.includes('オープン')) {
-		matchType = 'bankara';
-		scheduleData = schedules.data.bankaraSchedules.nodes[count];
-		matchSettingKey = 'bankaraMatchSettings';
-		title = 'バンカラマッチ（オープン）';
-	} else if (text.includes('x')) {
-		matchType = 'x';
-		scheduleData = schedules.data.xSchedules.nodes[count];
-		matchSettingKey = 'xMatchSetting';
-		title = 'Xマッチ';
-	} else if (text.includes('イベント')) {
-		matchType = 'event';
-		scheduleData = schedules.data.eventSchedules.nodes[count];
-		matchSettingKey = 'eventMatchSetting';
-		title = 'イベントマッチ';
-	} else if (text.includes('サモラン')) {
-		matchType = 'coop';
-		scheduleData = schedules.data.coopGroupingSchedule.regularSchedules.nodes[count];
-		matchSettingKey = 'setting';
-		title = 'サーモンラン';
-	} else {
-		throw new Error('Invalid match type');
+	// Set schedule data and settings based on match type
+	type MatchConfigKey = keyof (typeof schedules)['data'] | 'coopGroupingSchedule.regularSchedules';
+	interface MatchConfigValue {
+		scheduleKey: MatchConfigKey;
+		matchSettingKey: string;
+		title: string;
 	}
+
+	const matchConfig: Record<MatchType, MatchConfigValue> = {
+		REGULAR: {
+			scheduleKey: 'regularSchedules',
+			matchSettingKey: 'regularMatchSetting',
+			title: 'ナワバリマッチ',
+		},
+		BANKARA_CHALLENGE: {
+			scheduleKey: 'bankaraSchedules',
+			matchSettingKey: 'bankaraMatchSettings',
+			title: 'バンカラマッチ（チャレンジ）',
+		},
+		BANKARA_OPEN: {
+			scheduleKey: 'bankaraSchedules',
+			matchSettingKey: 'bankaraMatchSettings',
+			title: 'バンカラマッチ（オープン）',
+		},
+		X_MATCH: {
+			scheduleKey: 'xSchedules',
+			matchSettingKey: 'xMatchSetting',
+			title: 'Xマッチ',
+		},
+		EVENT: {
+			scheduleKey: 'eventSchedules',
+			matchSettingKey: 'eventMatchSetting',
+			title: 'イベントマッチ',
+		},
+		SALMON_RUN: {
+			scheduleKey: 'coopGroupingSchedule.regularSchedules',
+			matchSettingKey: 'setting',
+			title: 'サーモンラン',
+		},
+	} as const;
+
+	const config = matchConfig[matchTypeResult];
+	const [mainKey] = config.scheduleKey.split('.');
+
+	interface HasNodesData {
+		nodes: unknown[];
+		[key: string]: unknown;
+	}
+
+	const hasNodes = (data: unknown): data is HasNodesData => {
+		return (
+			data !== null &&
+			typeof data === 'object' &&
+			'nodes' in data &&
+			Array.isArray((data as HasNodesData).nodes)
+		);
+	};
+
+	if (matchTypeResult === 'SALMON_RUN') {
+		const coopSchedule = schedules.data.coopGroupingSchedule;
+		if (!coopSchedule || !hasNodes(coopSchedule.regularSchedules)) {
+			throw new Error('Salmon Run schedule not found');
+		}
+		scheduleData = coopSchedule.regularSchedules.nodes[
+			count
+		] as Schedules['data']['coopGroupingSchedule']['regularSchedules']['nodes'][number] &
+			ScheduleData;
+	} else {
+		const scheduleKey = mainKey as keyof Omit<typeof schedules.data, 'coopGroupingSchedule'>;
+		const schedule = schedules.data[scheduleKey];
+		if (!schedule || !hasNodes(schedule)) {
+			throw new Error(`Schedule type ${mainKey} not found`);
+		}
+		scheduleData = schedule.nodes[count] as
+			| Schedules['data']['regularSchedules']['nodes'][number]
+			| Schedules['data']['bankaraSchedules']['nodes'][number]
+			| Schedules['data']['xSchedules']['nodes'][number]
+			| Schedules['data']['eventSchedules']['nodes'][number];
+	}
+
+	const { matchSettingKey, title } = config;
+	const matchType = matchTypeResult === 'SALMON_RUN' ? 'coop' : matchTypeResult.toLowerCase();
 
 	if (!scheduleData) {
 		const message: TextMessage[] = [
