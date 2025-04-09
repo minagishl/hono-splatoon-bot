@@ -15,11 +15,29 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 	const locale = await getLocale();
 
 	let matchType: string;
+	interface VsRule {
+		vsRule: { id: string };
+	}
+
+	interface CoopSetting {
+		boss?: { id: string };
+		coopStage?: { id: string };
+		weapons?: Array<{ __splatoon3ink_id: string }>;
+	}
+
+	type MatchSetting = VsRule | CoopSetting;
+
+	interface ScheduleData {
+		[key: string]: MatchSetting;
+	}
+
 	let scheduleData:
 		| Schedules['data']['regularSchedules']['nodes'][number]
 		| Schedules['data']['bankaraSchedules']['nodes'][number]
 		| Schedules['data']['xSchedules']['nodes'][number]
-		| Schedules['data']['eventSchedules']['nodes'][number];
+		| Schedules['data']['eventSchedules']['nodes'][number]
+		| (Schedules['data']['coopGroupingSchedule']['regularSchedules']['nodes'][number] &
+				ScheduleData);
 	let matchSettingKey: string;
 	let title: string;
 
@@ -49,6 +67,11 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 		scheduleData = schedules.data.eventSchedules.nodes[count];
 		matchSettingKey = 'eventMatchSetting';
 		title = 'イベントマッチ';
+	} else if (text.includes('サモラン')) {
+		matchType = 'coop';
+		scheduleData = schedules.data.coopGroupingSchedule.regularSchedules.nodes[count];
+		matchSettingKey = 'setting';
+		title = 'サーモンラン';
 	} else {
 		throw new Error('Invalid match type');
 	}
@@ -84,17 +107,26 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 						{
 							type: 'text' as const,
 							text: (() => {
-								if ('timePeriods' in scheduleData) {
+								if (
+									'timePeriods' in scheduleData &&
+									Array.isArray(scheduleData.timePeriods) &&
+									scheduleData.timePeriods.length > 0 &&
+									'startTime' in scheduleData.timePeriods[0] &&
+									'endTime' in scheduleData.timePeriods[0]
+								) {
 									const currentPeriod = scheduleData.timePeriods[0];
 									return formatDateRange(
 										new Date(currentPeriod.startTime),
 										new Date(currentPeriod.endTime)
 									);
 								}
-								return formatDateRange(
-									new Date(scheduleData.startTime),
-									new Date(scheduleData.endTime)
-								);
+								if ('startTime' in scheduleData && 'endTime' in scheduleData) {
+									return formatDateRange(
+										new Date(scheduleData.startTime),
+										new Date(scheduleData.endTime)
+									);
+								}
+								return 'N/A';
 							})(),
 							size: 'xs' as const,
 							color: '#aaaaaa',
@@ -109,23 +141,40 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 							contents: [
 								{
 									type: 'text' as const,
-									text: 'ルール',
+									text: (() => {
+										if (matchType === 'coop') {
+											return 'オカシラシャケ';
+										}
+										return 'ルール';
+									})(),
 									size: 'md' as const,
 									weight: 'bold' as const,
 								},
 								{
 									type: 'text' as const,
 									text: (() => {
-										const setting =
-											matchType === 'event' && 'leagueMatchSetting' in scheduleData
-												? scheduleData.leagueMatchSetting
-												: matchType === 'bankara'
-												? scheduleData[matchSettingKey as keyof typeof scheduleData][
-														title.includes('チャレンジ') ? 0 : 1
-												  ]
-												: scheduleData[matchSettingKey as keyof typeof scheduleData];
-										if (!setting?.vsRule?.id || !locale.rules[setting.vsRule.id]) return 'N/A';
-										return locale.rules[setting.vsRule.id].name;
+										if (matchType === 'coop') {
+											const setting = (scheduleData as ScheduleData)[matchSettingKey];
+											if ('boss' in setting && setting.boss?.id) {
+												return locale.bosses[setting.boss.id]?.name ?? 'N/A';
+											} else {
+												return 'N/A';
+											}
+										} else {
+											const setting =
+												matchType === 'event' && 'leagueMatchSetting' in scheduleData
+													? scheduleData.leagueMatchSetting
+													: matchType === 'bankara'
+													? scheduleData[matchSettingKey as keyof typeof scheduleData][
+															title.includes('チャレンジ') ? 0 : 1
+													  ]
+													: scheduleData[matchSettingKey as keyof typeof scheduleData];
+											if ('vsRule' in setting && setting.vsRule?.id) {
+												return locale.rules[setting.vsRule.id]?.name ?? 'N/A';
+											} else {
+												return 'N/A';
+											}
+										}
 									})(),
 									size: 'sm' as const,
 								},
@@ -147,28 +196,93 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 									size: 'md' as const,
 									weight: 'bold' as const,
 								},
-								...((matchType === 'event' && 'leagueMatchSetting' in scheduleData
-									? (scheduleData.leagueMatchSetting as { vsStages: Array<{ id: string }> })
-											?.vsStages
-									: matchType === 'bankara'
-									? (
-											scheduleData[matchSettingKey as keyof typeof scheduleData][
-												title.includes('チャレンジ') ? 0 : 1
-											] as {
-												vsStages: Array<{ id: string }>;
+								...(matchType === 'coop'
+									? (() => {
+											const setting = (scheduleData as ScheduleData)[matchSettingKey];
+											if (
+												!('coopStage' in setting) ||
+												!setting.coopStage?.id ||
+												!locale.stages[setting.coopStage.id]
+											) {
+												return [
+													{
+														type: 'text' as const,
+														text: 'N/A',
+														size: 'sm' as const,
+														color: '#555555',
+													},
+												];
 											}
-									  )?.vsStages
-									: (
-											scheduleData[matchSettingKey as keyof typeof scheduleData] as {
-												vsStages: Array<{ id: string }>;
-											}
-									  )?.vsStages
-								)?.map((stage) => ({
+											return [
+												{
+													type: 'text' as const,
+													text: locale.stages[setting.coopStage.id].name,
+													size: 'sm' as const,
+													color: '#555555',
+												},
+											];
+									  })()
+									: (matchType === 'event' && 'leagueMatchSetting' in scheduleData
+											? (scheduleData.leagueMatchSetting as { vsStages: Array<{ id: string }> })
+													?.vsStages
+											: matchType === 'bankara'
+											? (
+													scheduleData[matchSettingKey as keyof typeof scheduleData][
+														title.includes('チャレンジ') ? 0 : 1
+													] as {
+														vsStages: Array<{ id: string }>;
+													}
+											  )?.vsStages
+											: (
+													scheduleData[matchSettingKey as keyof typeof scheduleData] as {
+														vsStages: Array<{ id: string }>;
+													}
+											  )?.vsStages
+									  )?.map((stage) => ({
+											type: 'text' as const,
+											text: locale.stages[stage.id]?.name ?? 'N/A',
+											size: 'sm' as const,
+											color: '#555555',
+									  })) ?? []),
+							],
+							spacing: 'sm',
+							margin: 'xxl',
+						},
+						{
+							type: 'separator',
+							margin: 'xxl',
+						},
+						{
+							type: 'box',
+							layout: 'vertical',
+							contents: [
+								{
 									type: 'text' as const,
-									text: locale.stages[stage.id]?.name ?? 'N/A',
-									size: 'sm' as const,
-									color: '#555555',
-								})) ?? []),
+									text: '支給ブキ',
+									size: 'md' as const,
+									weight: 'bold' as const,
+								},
+								...(matchType === 'coop'
+									? (() => {
+											const setting = (scheduleData as ScheduleData)[matchSettingKey];
+											if (!('weapons' in setting) || !setting.weapons?.length) {
+												return [
+													{
+														type: 'text' as const,
+														text: 'N/A',
+														size: 'sm' as const,
+														color: '#555555',
+													},
+												];
+											}
+											return setting.weapons.map((weapon: { __splatoon3ink_id: string }) => ({
+												type: 'text' as const,
+												text: locale.weapons[weapon.__splatoon3ink_id]?.name ?? 'N/A',
+												size: 'sm' as const,
+												color: '#555555',
+											}));
+									  })()
+									: []),
 							],
 							spacing: 'sm',
 							margin: 'xxl',
