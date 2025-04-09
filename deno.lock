@@ -2,20 +2,28 @@
   "version": "4",
   "specifiers": {
     "npm:@line/bot-sdk@^9.8.0": "9.8.0",
-    "npm:hono@^4.7.6": "4.7.6"
+    "npm:@types/node@*": "22.5.4",
+    "npm:hono@^4.7.6": "4.7.6",
+    "npm:splatnet3-types@~0.2.20231119210145": "0.2.20231119210145"
   },
   "npm": {
     "@line/bot-sdk@9.8.0": {
       "integrity": "sha512-vw4TTtkw5zwKu/FhATnm5n2sCcoKjcHEgN16Oq5NyXwGEzIcyh6RwGrYnX4SisiPO1lklAIba1DuDf9hEYZ4mg==",
       "dependencies": [
-        "@types/node",
+        "@types/node@22.14.0",
         "axios"
       ]
     },
     "@types/node@22.14.0": {
       "integrity": "sha512-Kmpl+z84ILoG+3T/zQFyAJsU6EPTmOCj8/2+83fSN6djd6I4o7uOuGIH6vq3PrjY5BGitSbFuMN18j3iknubbA==",
       "dependencies": [
-        "undici-types"
+        "undici-types@6.21.0"
+      ]
+    },
+    "@types/node@22.5.4": {
+      "integrity": "sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==",
+      "dependencies": [
+        "undici-types@6.19.8"
       ]
     },
     "asynckit@0.4.0": {
@@ -147,6 +155,12 @@
     "proxy-from-env@1.1.0": {
       "integrity": "sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg=="
     },
+    "splatnet3-types@0.2.20231119210145": {
+      "integrity": "sha512-ySnftvxfn7zuGUgBxcjGPYhVHs8QaUCxHdbUNw4u46bXwtxQ82eyvXc+sDQI5TcHHPHz821PyrhtWW3pt9QdAg=="
+    },
+    "undici-types@6.19.8": {
+      "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
+    },
     "undici-types@6.21.0": {
       "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="
     }
@@ -154,7 +168,8 @@
   "workspace": {
     "dependencies": [
       "npm:@line/bot-sdk@^9.8.0",
-      "npm:hono@^4.7.6"
+      "npm:hono@^4.7.6",
+      "npm:splatnet3-types@~0.2.20231119210145"
     ]
   }
 }

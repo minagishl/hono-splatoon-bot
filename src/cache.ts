@@ -1,3 +1,5 @@
+import { Schedules } from 'splatnet3-types/splatoon3ink';
+
 export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Promise<T> {
 	const kv = await Deno.openKv();
 	const now = new Date();
@@ -36,7 +38,7 @@ export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Prom
 // Get schedule information (with cache applied)
 export async function getSchedules() {
 	const url = 'https://splatoon3.ink/data/schedules.json';
-	return await getCachedData<any>('schedules', url);
+	return await getCachedData<Schedules>('schedules', url);
 }
 
 // Get locale (ja-JP) information (with cache applied)
