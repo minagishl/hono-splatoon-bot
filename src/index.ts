@@ -10,19 +10,19 @@ app.get('/', (c) => {
 
 app.post('/webhook', async (c) => {
 	const events: WebhookEvent[] = await c.req.json().then((data) => data.events);
-	const token = Deno.env.get('CHANNEL_ACCESS_TOKEN') ?? '';
+	const accessToken = Deno.env.get('CHANNEL_ACCESS_TOKEN') ?? '';
 
-	if (token === '') {
+	if (accessToken === '') {
 		return c.json({ message: 'Channel access token is not set' }, 500);
 	}
 
 	// Processes received events
-	c.executionCtx.waitUntil(processEvents(events, token, c));
+	c.executionCtx.waitUntil(processEvents(events, accessToken, c));
 
 	return c.json({ message: 'Webhook received' }, 200);
 });
 
-async function processEvents(events: WebhookEvent[], token: string, c: Context) {
+async function processEvents(events: WebhookEvent[], accessToken: string, c: Context) {
 	await Promise.all(
 		events.map(async (event) => {
 			try {
