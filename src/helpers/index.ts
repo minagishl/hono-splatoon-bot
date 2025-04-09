@@ -1,2 +1,2 @@
-export { countNext } from './countNext.ts';
-export { replyMessage } from './replyMessage.ts';
+export { countNext } from './count.ts';
+export { replyMessage } from './message.ts';
