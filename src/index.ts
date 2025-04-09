@@ -33,7 +33,7 @@ async function processEvents(events: WebhookEvent[], accessToken: string, c: Con
 					return c.json({ message: 'Not a text message' }, 200);
 				}
 
-				const message = await createMessage(event, accessToken);
+				const message = await createMessage(event);
 
 				// Check if the message is a valid object
 				if (message) {

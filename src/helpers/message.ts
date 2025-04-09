@@ -2,10 +2,7 @@ import type { TextMessage, FlexMessage, WebhookEvent } from '@line/bot-sdk';
 import { getSchedules, getLocale } from '../cache.ts';
 import { countNext } from './index.ts';
 
-export async function createMessage(
-	event: WebhookEvent,
-	accessToken: string
-): Promise<FlexMessage[]> {
+export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]> {
 	if (event.type !== 'message' || event.message.type !== 'text') {
 		throw new Error('Not a text message');
 	}
