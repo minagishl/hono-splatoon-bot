@@ -1,4 +1,5 @@
 import type { TextMessage, FlexMessage, WebhookEvent } from '@line/bot-sdk';
+import type { Schedules } from 'splatnet3-types/splatoon3ink';
 import { getSchedules, getLocale } from '../cache.ts';
 import { countNext } from './index.ts';
 
@@ -7,15 +8,59 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 		throw new Error('Not a text message');
 	}
 
-	const count = countNext(event.message.text, 3);
+	const text = event.message.text.toLowerCase();
+	const count = countNext(text, 3);
 
 	const schedules = await getSchedules();
 	const locale = await getLocale();
 
+	let matchType: string;
+	let scheduleData:
+		| Schedules['data']['regularSchedules']['nodes'][number]
+		| Schedules['data']['bankaraSchedules']['nodes'][number]
+		| Schedules['data']['xSchedules']['nodes'][number]
+		| Schedules['data']['eventSchedules']['nodes'][number];
+	let matchSettingKey: string;
+	let title: string;
+
+	// Determine the match type based on the text
+	if (text.includes('レギュラー') || text.includes('ナワバリ')) {
+		matchType = 'regular';
+		scheduleData = schedules.data.regularSchedules.nodes[count];
+		matchSettingKey = 'regularMatchSetting';
+		title = 'ナワバリマッチ';
+	} else if (text.includes('バンカラ') && !text.includes('オープン')) {
+		matchType = 'bankara';
+		scheduleData = schedules.data.bankaraSchedules.nodes[count];
+		matchSettingKey = 'bankaraMatchSettings';
+		title = 'バンカラマッチ（チャレンジ）';
+	} else if (text.includes('バンカラ') && text.includes('オープン')) {
+		matchType = 'bankara';
+		scheduleData = schedules.data.bankaraSchedules.nodes[count];
+		matchSettingKey = 'bankaraMatchSettings';
+		title = 'バンカラマッチ（オープン）';
+	} else if (text.includes('x')) {
+		matchType = 'x';
+		scheduleData = schedules.data.xSchedules.nodes[count];
+		matchSettingKey = 'xMatchSetting';
+		title = 'Xマッチ';
+	} else if (text.includes('イベント')) {
+		matchType = 'event';
+		scheduleData = schedules.data.eventSchedules.nodes[count];
+		matchSettingKey = 'eventMatchSetting';
+		title = 'イベントマッチ';
+	} else {
+		throw new Error('Invalid match type');
+	}
+
+	if (!scheduleData) {
+		throw new Error('No schedule data available');
+	}
+
 	const message: FlexMessage[] = [
 		{
 			type: 'flex',
-			altText: 'Message',
+			altText: title,
 			contents: {
 				type: 'bubble',
 				body: {
@@ -23,51 +68,62 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 					layout: 'vertical',
 					contents: [
 						{
-							type: 'text',
+							type: 'text' as const,
 							text: 'ステージ情報',
-							weight: 'bold',
+							weight: 'bold' as const,
 							color: '#1DB446',
-							size: 'sm',
+							size: 'sm' as const,
 						},
 						{
-							type: 'text',
-							text: 'ナワバリバトル',
-							weight: 'bold',
-							size: 'xl',
-							margin: 'sm',
+							type: 'text' as const,
+							text: title,
+							weight: 'bold' as const,
+							size: 'xl' as const,
+							margin: 'sm' as const,
 						},
-
 						{
-							type: 'text' as 'span',
-							text: formatDateRange(
-								new Date(schedules.data.regularSchedules.nodes[count].startTime),
-								new Date(schedules.data.regularSchedules.nodes[count].endTime)
-							),
-							size: 'xs',
+							type: 'text' as const,
+							text: (() => {
+								if ('timePeriods' in scheduleData) {
+									const currentPeriod = scheduleData.timePeriods[0];
+									return formatDateRange(
+										new Date(currentPeriod.startTime),
+										new Date(currentPeriod.endTime)
+									);
+								}
+								return formatDateRange(
+									new Date(scheduleData.startTime),
+									new Date(scheduleData.endTime)
+								);
+							})(),
+							size: 'xs' as const,
 							color: '#aaaaaa',
 						},
-
 						{
-							type: 'separator' as const,
+							type: 'separator',
 							margin: 'xxl',
 						},
 						{
-							type: 'box' as const,
-							layout: 'vertical' as const,
+							type: 'box',
+							layout: 'vertical',
 							contents: [
 								{
-									type: 'text' as 'span',
+									type: 'text' as const,
 									text: 'ルール',
-									size: 'md',
-									weight: 'bold',
+									size: 'md' as const,
+									weight: 'bold' as const,
 								},
 								{
-									type: 'text' as 'span',
-									text: locale.rules[
-										schedules.data.regularSchedules.nodes[count].regularMatchSetting?.vsRule
-											.id as string
-									].name,
-									size: 'sm',
+									type: 'text' as const,
+									text: (() => {
+										const setting =
+											matchType === 'event' && 'leagueMatchSetting' in scheduleData
+												? scheduleData.leagueMatchSetting
+												: scheduleData[matchSettingKey as keyof typeof scheduleData];
+										if (!setting?.vsRule?.id || !locale.rules[setting.vsRule.id]) return 'N/A';
+										return locale.rules[setting.vsRule.id].name;
+									})(),
+									size: 'sm' as const,
 								},
 							],
 							spacing: 'sm',
@@ -82,19 +138,25 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 							layout: 'vertical',
 							contents: [
 								{
-									type: 'text',
+									type: 'text' as const,
 									text: 'ステージ',
-									size: 'md',
-									weight: 'bold',
+									size: 'md' as const,
+									weight: 'bold' as const,
 								},
-								...(schedules.data.regularSchedules.nodes[count].regularMatchSetting?.vsStages?.map(
-									(stage) => ({
-										type: 'text' as 'span',
-										text: locale.stages[stage.id].name,
-										size: 'sm',
-										color: '#555555',
-									})
-								) || []),
+								...((matchType === 'event' && 'leagueMatchSetting' in scheduleData
+									? (scheduleData.leagueMatchSetting as { vsStages: Array<{ id: string }> })
+											?.vsStages
+									: (
+											scheduleData[matchSettingKey as keyof typeof scheduleData] as {
+												vsStages: Array<{ id: string }>;
+											}
+									  )?.vsStages
+								)?.map((stage) => ({
+									type: 'text' as const,
+									text: locale.stages[stage.id]?.name ?? 'N/A',
+									size: 'sm' as const,
+									color: '#555555',
+								})) ?? []),
 							],
 							spacing: 'sm',
 							margin: 'xxl',
