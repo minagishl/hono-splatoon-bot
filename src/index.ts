@@ -2,6 +2,9 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import type { WebhookEvent } from '@line/bot-sdk';
 
+// Helper function
+import { createMessage, replyMessage } from './helpers/message.ts';
+
 const app = new Hono();
 
 app.get('/', (c) => {
@@ -17,7 +20,7 @@ app.post('/webhook', async (c) => {
 	}
 
 	// Processes received events
-	c.executionCtx.waitUntil(processEvents(events, accessToken, c));
+	processEvents(events, accessToken, c);
 
 	return c.json({ message: 'Webhook received' }, 200);
 });
@@ -26,7 +29,16 @@ async function processEvents(events: WebhookEvent[], accessToken: string, c: Con
 	await Promise.all(
 		events.map(async (event) => {
 			try {
-				await console.log('test');
+				if (event.type !== 'message' || event.message.type !== 'text') {
+					return c.json({ message: 'Not a text message' }, 200);
+				}
+
+				const message = await createMessage(event, accessToken);
+
+				// Check if the message is a valid object
+				if (message) {
+					await replyMessage(event.replyToken, message, accessToken);
+				}
 			} catch (err) {
 				if (err instanceof Error) {
 					console.error(err);
