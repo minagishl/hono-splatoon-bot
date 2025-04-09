@@ -1,4 +1,4 @@
-import { Coop, Schedules } from 'splatnet3-types/splatoon3ink';
+import { Coop, Festivals, Schedules } from 'splatnet3-types/splatoon3ink';
 import { Locale } from './types/locale.ts';
 
 export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Promise<T> {
@@ -40,6 +40,12 @@ export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Prom
 export async function getCoop() {
 	const url = 'https://splatoon3.ink/data/coop.json';
 	return await getCachedData<Coop>('coop', url);
+}
+
+// Get festival information (with cache applied)
+export async function getFestivals() {
+	const url = 'https://splatoon3.ink/data/festivals.json';
+	return await getCachedData<Festivals>('festivals', url);
 }
 
 // Get schedule information (with cache applied)
