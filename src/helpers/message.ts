@@ -85,10 +85,10 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 			type: 'flex',
 			altText: title,
 			contents: {
-				type: 'bubble',
+				type: 'bubble' as const,
 				body: {
-					type: 'box',
-					layout: 'vertical',
+					type: 'box' as const,
+					layout: 'vertical' as const,
 					contents: [
 						{
 							type: 'text' as const,
@@ -132,12 +132,12 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 							color: '#aaaaaa',
 						},
 						{
-							type: 'separator',
-							margin: 'xxl',
+							type: 'separator' as const,
+							margin: 'xxl' as const,
 						},
 						{
-							type: 'box',
-							layout: 'vertical',
+							type: 'box' as const,
+							layout: 'vertical' as const,
 							contents: [
 								{
 									type: 'text' as const,
@@ -179,16 +179,16 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 									size: 'sm' as const,
 								},
 							],
-							spacing: 'sm',
-							margin: 'xxl',
+							spacing: 'sm' as const,
+							margin: 'xxl' as const,
 						},
 						{
-							type: 'separator',
-							margin: 'xxl',
+							type: 'separator' as const,
+							margin: 'xxl' as const,
 						},
 						{
-							type: 'box',
-							layout: 'vertical',
+							type: 'box' as const,
+							layout: 'vertical' as const,
 							contents: [
 								{
 									type: 'text' as const,
@@ -245,48 +245,50 @@ export async function createMessage(event: WebhookEvent): Promise<FlexMessage[]>
 											color: '#555555',
 									  })) ?? []),
 							],
-							spacing: 'sm',
-							margin: 'xxl',
+							spacing: 'sm' as const,
+							margin: 'xxl' as const,
 						},
-						{
-							type: 'separator',
-							margin: 'xxl',
-						},
-						{
-							type: 'box',
-							layout: 'vertical',
-							contents: [
-								{
-									type: 'text' as const,
-									text: '支給ブキ',
-									size: 'md' as const,
-									weight: 'bold' as const,
-								},
-								...(matchType === 'coop'
-									? (() => {
-											const setting = (scheduleData as ScheduleData)[matchSettingKey];
-											if (!('weapons' in setting) || !setting.weapons?.length) {
-												return [
-													{
-														type: 'text' as const,
-														text: 'N/A',
-														size: 'sm' as const,
-														color: '#555555',
-													},
-												];
-											}
-											return setting.weapons.map((weapon: { __splatoon3ink_id: string }) => ({
+						...(matchType === 'coop'
+							? [
+									{
+										type: 'separator' as const,
+										margin: 'xxl' as const,
+									},
+									{
+										type: 'box' as const,
+										layout: 'vertical' as const,
+										contents: [
+											{
 												type: 'text' as const,
-												text: locale.weapons[weapon.__splatoon3ink_id]?.name ?? 'N/A',
-												size: 'sm' as const,
-												color: '#555555',
-											}));
-									  })()
-									: []),
-							],
-							spacing: 'sm',
-							margin: 'xxl',
-						},
+												text: '支給ブキ',
+												size: 'md' as const,
+												weight: 'bold' as const,
+											},
+											...(() => {
+												const setting = (scheduleData as ScheduleData)[matchSettingKey];
+												if (!('weapons' in setting) || !setting.weapons?.length) {
+													return [
+														{
+															type: 'text' as const,
+															text: 'N/A',
+															size: 'sm' as const,
+															color: '#555555',
+														},
+													];
+												}
+												return setting.weapons.map((weapon: { __splatoon3ink_id: string }) => ({
+													type: 'text' as const,
+													text: locale.weapons[weapon.__splatoon3ink_id]?.name ?? 'N/A',
+													size: 'sm' as const,
+													color: '#555555',
+												}));
+											})(),
+										],
+										spacing: 'sm' as const,
+										margin: 'xxl' as const,
+									},
+							  ]
+							: []),
 					],
 				},
 				styles: {
