@@ -1,10 +1,17 @@
 import type { TextMessage, FlexMessage, WebhookEvent } from '@line/bot-sdk';
 import { getSchedules, getLocale } from '../cache.ts';
+import { countNext } from './index.ts';
 
 export async function createMessage(
 	event: WebhookEvent,
 	accessToken: string
 ): Promise<FlexMessage[]> {
+	if (event.type !== 'message' || event.message.type !== 'text') {
+		throw new Error('Not a text message');
+	}
+
+	const count = countNext(event.message.text, 3);
+
 	const schedules = await getSchedules();
 	const locale = await getLocale();
 
@@ -36,8 +43,8 @@ export async function createMessage(
 						{
 							type: 'text' as 'span',
 							text: formatDateRange(
-								new Date(schedules.data.regularSchedules.nodes[0].startTime),
-								new Date(schedules.data.regularSchedules.nodes[0].endTime)
+								new Date(schedules.data.regularSchedules.nodes[count].startTime),
+								new Date(schedules.data.regularSchedules.nodes[count].endTime)
 							),
 							size: 'xs',
 							color: '#aaaaaa',
@@ -60,7 +67,7 @@ export async function createMessage(
 								{
 									type: 'text' as 'span',
 									text: locale.rules[
-										schedules.data.regularSchedules.nodes[0].regularMatchSetting?.vsRule
+										schedules.data.regularSchedules.nodes[count].regularMatchSetting?.vsRule
 											.id as string
 									].name,
 									size: 'sm',
@@ -83,7 +90,7 @@ export async function createMessage(
 									size: 'md',
 									weight: 'bold',
 								},
-								...(schedules.data.regularSchedules.nodes[0].regularMatchSetting?.vsStages?.map(
+								...(schedules.data.regularSchedules.nodes[count].regularMatchSetting?.vsStages?.map(
 									(stage) => ({
 										type: 'text' as 'span',
 										text: locale.stages[stage.id].name,
