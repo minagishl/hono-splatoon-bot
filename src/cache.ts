@@ -25,7 +25,11 @@ export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Prom
 	}
 
 	// Fetch the data from the URL
-	const resp = await fetch(fetchUrl);
+	const resp = await fetch(fetchUrl, {
+		headers: {
+			'User-Agent': 'hono-splatoon-bot (Contact: https://x.com/minagishl)',
+		},
+	});
 	if (!resp.ok) {
 		throw new Error(`Failed to fetch data from ${fetchUrl}`);
 	}
