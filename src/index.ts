@@ -1,6 +1,6 @@
 import { Hono } from '@hono/hono';
 import type { Context } from '@hono/hono';
-import type { WebhookEvent } from '@line/bot-sdk';
+import type { WebhookEvent } from '@line/bot-sdk/types';
 
 // Helper function
 import { createMessage, replyMessage } from './helpers/message.ts';
