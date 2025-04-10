@@ -1,7 +1,7 @@
 import type { TextMessage, FlexMessage, WebhookEvent } from '@line/bot-sdk';
 import type { Schedules } from 'splatnet3-types/splatoon3ink';
 import { getSchedules, getLocale } from '../cache.ts';
-import { countNext } from './index.ts';
+import { countNext } from './count.ts';
 import { findMatchType, type MatchType } from '../constants/keywords.ts';
 
 export async function createMessage(event: WebhookEvent): Promise<TextMessage[] | FlexMessage[]> {
