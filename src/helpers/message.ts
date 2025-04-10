@@ -22,12 +22,22 @@ export async function createMessage(event: WebhookEvent): Promise<TextMessage[] 
 
 	interface VsRule {
 		vsRule: { id: string };
+		leagueMatchEvent?: LeagueMatchEvent;
 	}
 
 	interface CoopSetting {
 		boss?: { id: string };
 		coopStage?: { id: string };
 		weapons?: Array<{ __splatoon3ink_id: string }>;
+	}
+
+	interface LeagueMatchEvent {
+		leagueMatchEventId: string;
+		name: string;
+		desc: string;
+		regulationUrl: string | null;
+		regulation: string;
+		id: string;
 	}
 
 	type MatchSetting = VsRule | CoopSetting;
@@ -227,6 +237,14 @@ export async function createMessage(event: WebhookEvent): Promise<TextMessage[] 
 													  ]
 													: scheduleData[matchSettingKey as keyof typeof scheduleData];
 											if ('vsRule' in setting && setting.vsRule?.id) {
+												if (setting.leagueMatchEvent) {
+													return (
+														(locale.rules[setting.vsRule.id]?.name ?? 'N/A') +
+														'（' +
+														(locale.events[setting.leagueMatchEvent.id].name ?? 'N/A') +
+														'）'
+													);
+												}
 												return locale.rules[setting.vsRule.id]?.name ?? 'N/A';
 											} else {
 												return 'N/A';
