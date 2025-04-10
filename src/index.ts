@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
-import type { Context } from 'hono';
+import { Hono } from '@hono/hono';
+import type { Context } from '@hono/hono';
 import type { WebhookEvent } from '@line/bot-sdk';
 
 // Helper function
