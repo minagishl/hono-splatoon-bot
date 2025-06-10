@@ -1,8 +1,11 @@
 import { Coop, Festivals, Schedules } from 'splatnet3-types/splatoon3ink';
 import { Locale } from './types/locale.ts';
 
+// Open Deno KV once and reuse it for all cache accesses
+const kvPromise = Deno.openKv();
+
 export async function getCachedData<T>(cacheKey: string, fetchUrl: string): Promise<T> {
-	const kv = await Deno.openKv();
+	const kv = await kvPromise;
 	const now = new Date();
 	const currentHour = now.getHours();
 
